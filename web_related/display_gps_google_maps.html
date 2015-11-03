@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style type="text/css">
+      html, body { height: 100%; margin: 0; padding: 0; }
+      #map { height: 70%; }
+    </style>
+
+	<script type="text/javascript" src="eventemitter2.min.js"></script>
+	<script type="text/javascript" src="roslib.min.js"></script>
+
+  </head>
+  <body>
+    <h1>Location of the Jaguar on Google Maps</h1>
+    <div id="map"></div>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDrjdiXO25Frm6DOiQsdwtHDySHgKjAngY&"></script>
+    <script type="text/javascript">
+
+function checkAgain(){
+var myLatLng ;
+function initMap() {
+  //var myLatLng = {lat: 40.00719083333333 , lng: -105.2640175};
+
+  var map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 15,
+    center: myLatLng
+  });
+
+  var marker = new google.maps.Marker({
+    position: myLatLng,
+    map: map,
+    title: 'Jaguar'
+  });
+}
+
+// Connecting to ROS
+
+			var ros = new ROSLIB.Ros({
+				url : 'ws://' + '192.168.205.1' + ':9090'
+			});
+
+			ros.on('connection', function() {
+				console.log('Connected to websocket server.');
+			});
+
+			ros.on('error', function(error) {
+				console.log('Error connecting to websocket server: ', error);
+			});
+
+			ros.on('close', function() {
+				console.log('Connection to websocket server closed.');
+			});
+
+// Subscribing to a Topic
+
+			/*var printJSON = function(message) {
+				if(message)
+					//console.log(JSON.stringify(message));
+					console.log('Longitude: ' + message.longitude + ', Latitude: ' + message.latitude);
+					myLatLng = {lat: message.latitude , lng: message.longitude};
+
+			};*/
+			
+			var gps_listener = new ROSLIB.Topic({
+				ros : ros,
+				name : '/gps/fix',
+				messageType : 'sensor_msgs/NavSatFix'
+			});
+			
+			//gps_listener.subscribe(printJSON);
+
+			gps_listener.subscribe(function(message) 
+			{
+  		        console.log('Longitude: ' + message.longitude + ', Latitude: ' + message.latitude);
+			myLatLng = {lat: message.latitude , lng: message.longitude};	
+			//myLatLng = {lat: 40.00719083333333 , lng: -105.2640175};
+			document.getElementById("lat").setAttribute("value", message.latitude);
+			document.getElementById("lon").setAttribute("value", message.longitude);
+			initMap();
+       			gps_listener.unsubscribe();
+     			
+			});
+}
+
+    </script>
+
+<button name="button" onclick="checkAgain()">Click to update location on Map</button>
+<input id="lat" name="Latitude" type="text" readonly />
+<input id="lon" name="Longitude" type="text" readonly />
+  </body>
+</html>
